@@ -1,48 +1,70 @@
 """
-Database Schemas
+Database Schemas for Flori Mart
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model represents a MongoDB collection (collection name = lowercase class name).
 """
+from typing import List, Optional, Literal
+from pydantic import BaseModel, Field, EmailStr
 
-from pydantic import BaseModel, Field
-from typing import Optional
-
-# Example schemas (replace with your own):
-
-class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
 
 class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
     title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+    description: Optional[str] = Field(None, description="Detailed description")
+    price: float = Field(..., ge=0, description="Price in USD")
+    images: List[str] = Field(default_factory=list, description="Image URLs")
+    occasion: Optional[str] = Field(None, description="Occasion category")
+    style: Optional[str] = Field(None, description="Style tag")
+    color: Optional[str] = Field(None, description="Dominant color")
+    sizes: List[str] = Field(default_factory=lambda: ["S","M","L"], description="Available size options")
+    is_featured: bool = Field(False, description="Featured on homepage")
+    rating: float = Field(0, ge=0, le=5, description="Average rating")
+    rating_count: int = Field(0, ge=0, description="Number of ratings")
 
-# Add your own schemas here:
-# --------------------------------------------------
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Review(BaseModel):
+    product_id: str = Field(..., description="Related product id")
+    name: str = Field(..., description="Reviewer name")
+    rating: int = Field(..., ge=1, le=5, description="Star rating 1-5")
+    comment: Optional[str] = Field(None, description="Review text")
+
+
+class Newsletter(BaseModel):
+    email: EmailStr
+    source: Optional[str] = Field(None)
+
+
+class ContactMessage(BaseModel):
+    name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    message: str
+
+
+class OrderItem(BaseModel):
+    product_id: str
+    title: str
+    price: float
+    quantity: int = Field(..., ge=1)
+    size: Optional[str] = None
+    image: Optional[str] = None
+
+
+class Address(BaseModel):
+    full_name: str
+    phone: str
+    street: str
+    city: str
+    state: Optional[str] = None
+    postal_code: str
+    country: str
+
+
+class Order(BaseModel):
+    items: List[OrderItem]
+    subtotal: float = Field(..., ge=0)
+    delivery_fee: float = Field(0, ge=0)
+    total: float = Field(..., ge=0)
+    email: EmailStr
+    shipping_address: Address
+    payment_method: Literal["card", "cod", "bank"] = "cod"
+    notes: Optional[str] = None
